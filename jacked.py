@@ -3,7 +3,6 @@ from contextlib import contextmanager
 
 import jack
 from numpy import zeros
-import time
 
 try:
     range = xrange
@@ -14,49 +13,28 @@ def port_id(client_name, port_name):
     return "{}:{}".format(client_name, port_name)
 
 @contextmanager
-def get_client(name, in_channels, out_channels):
-    client = JackAudio(name, in_channels, out_channels)
+def get_client(name, inputs, outputs):
+    client = JackAudio(name, inputs, outputs)
     yield client
     client.close()
 
 
 class JackAudio(object):
-    def __init__(self, name, in_channels=0, out_channels=0):
+    def __init__(self, name, inputs, outputs):
         self.client = jack.Client(name)
         self.client.activate()
 
         self._buff_size = self.client.get_buffer_size()
-        self._in_channels = in_channels
-        self._out_channels = out_channels
-        
-        inputs, outputs = self._register(in_channels, out_channels)
-        self._connect(inputs, outputs, name)
+        self._in_channels = len(inputs)
+        self._out_channels = len(outputs)
 
-    def _register(self, in_channels, out_channels):
-        inputs = ["in_{}".format(i+1) for i in range(in_channels)]
-        outputs = ["out_{}".format(i+1) for i in range(out_channels)]
-        ports = chain(zip(inputs, repeat(jack.IsInput)),
-                      zip(outputs, repeat(jack.IsOutput)))
+        self._register(inputs, jack.IsInput, name)
+        self._register(outputs, jack.IsOutput, name)
 
-        for port, kind in ports:
-            self.client.register_port(port, kind)
-        return inputs, outputs
-
-    def _connect(self, inputs, outputs, name):
-        for i, (in_port, out_port) in enumerate(zip(inputs, outputs)):
-            self.client.connect(port_id(name, in_port), port_id("system", "playback_{}".format(i+1)))
-            self.client.connect(port_id("system", "capture_{}".format(i+1)), port_id(name, out_port))
-
-        if len(inputs) > len(outputs):
-            for in_port in inputs[len(outputs)-1:]:
-                self.client.connect(port_id(name, in_port),
-                                    port_id("system", "playback_{}".format(len(outputs))))
-         
-        elif len(outputs) > len(inputs):
-            for out_port in outputs[len(inputs)-1:]:
-                self.client.connect(port_id("system", "capture_{}".format(len(inputs))),
-                                    port_id(name, out_port))
-
+    def _register(self, ports, kind, name):
+        for src, dst in ports:
+            self.client.register_port(src, kind)
+            self.client.connect(port_id(name, src), dst)
 
     def close(self):
         self.client.deactivate()
