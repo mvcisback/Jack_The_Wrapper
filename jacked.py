@@ -1,4 +1,4 @@
-from itertools import repeat, chain
+from itertools import repeat
 from contextlib import contextmanager
 
 import jack
@@ -13,10 +13,23 @@ def port_id(client_name, port_name):
     return "{}:{}".format(client_name, port_name)
 
 @contextmanager
-def get_client(name, inputs, outputs):
-    client = JackAudio(name, inputs, outputs)
+def get_client(name, input_map, output_map):
+    client = JackAudio(name, input_map, output_map)
     yield client
     client.close()
+
+DEFAULT_CLIENT = "system"
+
+def easy_client(name, channels_in, channels_out):
+    return get_client(name, _port_map(channels_in, False),
+                      _port_map(channels_out, True))
+
+def _port_map(num_ports, is_output):
+    dst_template = 'playback_{}' if is_output else 'capture_{}'
+    src_template = 'out_{}' if is_output else 'in_{}'
+    return [(src_template.format(i),
+             port_id(DEFAULT_CLIENT, dst_template.format(i)))
+            for i in range(1, num_ports+1)]
 
 
 class JackAudio(object):
@@ -28,13 +41,23 @@ class JackAudio(object):
         self._in_channels = len(inputs)
         self._out_channels = len(outputs)
 
-        self._register(inputs, jack.IsInput, name)
-        self._register(outputs, jack.IsOutput, name)
+        self._register(outputs, jack.IsOutput)
+        self._register(inputs, jack.IsInput)
+        self._connect(outputs, True, name)
+        self._connect(inputs, False, name)
 
-    def _register(self, ports, kind, name):
-        for src, dst in ports:
+    def _register(self, ports, kind):
+        for src, _ in ports:
             self.client.register_port(src, kind)
-            self.client.connect(port_id(name, src), dst)
+
+    def _connect(self, ports, is_output, name):
+        for src, dst in ports:
+            src = port_id(name, src)
+            tries = 0
+            if not is_output:
+                src, dst = dst, src
+            self.client.connect(src, dst)
+
 
     def close(self):
         self.client.deactivate()

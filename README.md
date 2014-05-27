@@ -11,11 +11,12 @@
 
 ### Record 3 seconds and play back
 ```python
-from jacked import get_client
+from jacked import easy_client
 
-with get_client(name="captest", channels=1) as client:
-    captured = client.capture(sec=3)
-    client.play(captured)
+def main():
+    with easy_client(name="captest", channels_in=2, channels_out=2) as client:
+        captured = client.capture(sec=3)
+        client.play(captured)
 ```
 
 ## Roadmap
