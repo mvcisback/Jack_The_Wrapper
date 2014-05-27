@@ -1,4 +1,5 @@
 # Jack The Wrapper
+[![LOGO](http://imgur.com/yd7FeUI.png)](http://i.imgur.com/yd7FeUI.png)
 ## About
 ## Features
 ## Installing
