@@ -73,11 +73,12 @@ class JackAudio(object):
     def capture(self, sec):
         size = int(self.client.get_sample_rate()*sec)
         captured = zeros((self._in_channels, size), 'f')
-        self._process(ins=None, outs=self._generate_chunks(captured))
+        self._process(ins=self._generate_chunks(captured), outs=None)        
         return captured
 
     def play(self, captured):
-        self._process(ins=self._generate_chunks(captured), outs=None)
+        # TODO average extra bits if sent more output sources
+        self._process(ins=None, outs=self._generate_chunks(captured))
 
     def _sanitize(self, data, is_output):
         if data is not None:
@@ -89,7 +90,7 @@ class JackAudio(object):
         ins, outs = self._sanitize(ins, False), self._sanitize(outs, True)
         for ins, outs in zip(ins, outs):
             try:
-                self.client.process(ins, outs)
+                self.client.process(outs, ins)
             except jack.InputSyncError:
                 continue
             except jack.OutputSyncError:
