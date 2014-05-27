@@ -11,6 +11,8 @@
 
 ### Record 3 seconds and play back
 ```python
+from jacked import
+
 with get_client(name="captest", channels=1) as client:
     captured = client.capture(sec=3)
     client.play(captured)
