@@ -9,8 +9,7 @@ try:
 except NameError:
     pass
 
-def port_id(client_name, port_name):
-    return "{}:{}".format(client_name, port_name)
+_DEFAULT_CLIENT = "system"
 
 @contextmanager
 def get_client(name, input_map, output_map):
@@ -18,17 +17,21 @@ def get_client(name, input_map, output_map):
     yield client
     client.close()
 
-DEFAULT_CLIENT = "system"
 
 def easy_client(name, channels_in, channels_out):
     return get_client(name, _port_map(channels_in, False),
                       _port_map(channels_out, True))
 
+
+def _port_id(client_name, port_name):
+    return "{}:{}".format(client_name, port_name)
+
+
 def _port_map(num_ports, is_output):
     dst_template = 'playback_{}' if is_output else 'capture_{}'
     src_template = 'out_{}' if is_output else 'in_{}'
     return [(src_template.format(i),
-             port_id(DEFAULT_CLIENT, dst_template.format(i)))
+             _port_id(_DEFAULT_CLIENT, dst_template.format(i)))
             for i in range(1, num_ports+1)]
 
 
@@ -52,7 +55,7 @@ class JackAudio(object):
 
     def _connect(self, ports, is_output, name):
         for src, dst in ports:
-            src = port_id(name, src)
+            src = _port_id(name, src)
             tries = 0
             if not is_output:
                 src, dst = dst, src
