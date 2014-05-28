@@ -1,19 +1,20 @@
 from itertools import repeat
 from contextlib import contextmanager
 
-import jack
+# pylint: disable=E0611
 from numpy import zeros, resize, average
+# pylint: enable=E0611
+import jack
 
 try:
+    # pylint: disable=W0622,C0103
     range = xrange
+    # pylint: enable=W0622,C0103
 except NameError:
     pass
 
-_DEFAULT_CLIENT = "system"
 
-class ShapeError(Exception):
-    def __str__(self):
-        return "Explicitly specify truncate or average for play method"
+_DEFAULT_CLIENT = "system"
 
 @contextmanager
 def get_client(name, input_map, output_map):
@@ -44,8 +45,8 @@ class JackAudio(object):
         self.client.activate()
 
         self._buff_size = self.client.get_buffer_size()
-        self._in_channels = len(inputs)
-        self._out_channels = len(outputs)
+        self._num_in = len(inputs)
+        self._num_out = len(outputs)
 
         self._register(outputs, jack.IsOutput)
         self._register(inputs, jack.IsInput)
@@ -73,26 +74,24 @@ class JackAudio(object):
 
     def capture(self, sec):
         size = int(self.client.get_sample_rate()*sec)
-        captured = zeros((self._in_channels, size), 'f')
+        captured = zeros((self._num_in, size), 'f')
         self._process(ins=self._generate_chunks(captured), outs=None)
         return captured
 
-    def play(self, captured, truncate=None):
+    def play(self, captured, truncate=False):
         size = captured.shape[0]
-        if size < self._out_channels or truncate:
-            captured = resize(captured, (self._out_channels ,captured.shape[1]))
+        if size < self._num_out or truncate:
+            captured = resize(captured, (self._num_out, captured.shape[1]))
 
-        elif size > self._out_channels:
-            if truncate is None:
-                raise ShapeError
-            captured[self._out_channels] += average(captured[self._out_channels:,:])
-            captured = captured[:self._out_channels,]
+        elif size > self._num_out:
+            captured[self._num_out] += average(captured[self._num_out:, :])
+            captured = captured[:self._num_out,]
         self._process(ins=None, outs=self._generate_chunks(captured))
 
     def _sanitize(self, data, is_output):
         if data is not None:
             return data
-        channels = self._out_channels if is_output else self._in_channels
+        channels = self._num_out if is_output else self._num_in
         return repeat(zeros((channels, self._buff_size), 'f'))
 
     def _process(self, ins, outs):
