@@ -2,7 +2,7 @@ from itertools import repeat
 from contextlib import contextmanager
 
 import jack
-from numpy import zeros
+from numpy import zeros, resize, average
 
 try:
     range = xrange
@@ -10,6 +10,10 @@ except NameError:
     pass
 
 _DEFAULT_CLIENT = "system"
+
+class ShapeError(Exception):
+    def __str__(self):
+        return "Explicitly specify truncate or average for play method"
 
 @contextmanager
 def get_client(name, input_map, output_map):
@@ -34,7 +38,6 @@ def _port_map(num_ports, is_output):
              _port_id(_DEFAULT_CLIENT, dst_template.format(i)))
             for i in range(1, num_ports+1)]
 
-
 class JackAudio(object):
     def __init__(self, name, inputs, outputs):
         self.client = jack.Client(name)
@@ -56,11 +59,9 @@ class JackAudio(object):
     def _connect(self, ports, is_output, name):
         for src, dst in ports:
             src = _port_id(name, src)
-            tries = 0
             if not is_output:
                 src, dst = dst, src
             self.client.connect(src, dst)
-
 
     def close(self):
         self.client.deactivate()
@@ -73,11 +74,19 @@ class JackAudio(object):
     def capture(self, sec):
         size = int(self.client.get_sample_rate()*sec)
         captured = zeros((self._in_channels, size), 'f')
-        self._process(ins=self._generate_chunks(captured), outs=None)        
+        self._process(ins=self._generate_chunks(captured), outs=None)
         return captured
 
-    def play(self, captured):
-        # TODO average extra bits if sent more output sources
+    def play(self, captured, truncate=None):
+        size = captured.shape[0]
+        if size < self._out_channels or truncate:
+            captured = resize(captured, (self._out_channels ,captured.shape[1]))
+
+        elif size > self._out_channels:
+            if truncate is None:
+                raise ShapeError
+            captured[self._out_channels] += average(captured[self._out_channels:,:])
+            captured = captured[:self._out_channels,]
         self._process(ins=None, outs=self._generate_chunks(captured))
 
     def _sanitize(self, data, is_output):
