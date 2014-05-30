@@ -3,9 +3,17 @@
 
 ## About
 
-## Features
+Easy to use jack audio wrapper for python
+- Uses context managers and sane defaults to make interfacing with jack less painful
 
 ## Installing
+
+- Currently only supports python2 (due to pyjack C extension)
+  - python 3 port on the roadmap
+
+```shell
+$ python setup.py install
+```
 
 ## Examples
 
