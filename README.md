@@ -22,9 +22,11 @@ $ python setup.py install
 from jacked import easy_client
 
 def main():
-    with easy_client(name="captest", channels_in=2, channels_out=2) as client:
-        captured = client.capture(sec=3)
-        client.play(captured)
+    with easy_client(name="captest", channels_in=3, channels_out=2) as client:
+        captured = client.capture(sec=3) # returns numpy array of shape (channels_in, time*sample_rate)
+        client.play(captured) # Will average 3rd channel into 2nd
+        client.play(captured, truncate=False) # DITTO
+        client.play(captured, truncate=True) # will ignore 3rd channel
 ```
 
 ## Roadmap
