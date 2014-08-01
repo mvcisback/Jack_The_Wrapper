@@ -10,5 +10,5 @@ setup(
     license='LICENSE',
     description='',
     long_description=open('README.md').read(),
-    install_requires=['pyjack'],
+    install_requires=['py-jack==0.5.2', 'numpy'],
 )
