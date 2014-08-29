@@ -65,6 +65,10 @@ class JackAudio(object):
         self._connect(outputs, True, name)
         self._connect(inputs, False, name)
 
+    @property
+    def sample_rate(self):
+        return self.client.get_sample_rate()
+
     def _register(self, ports, kind):
         """register the ports"""
         for src, _ in ports:
