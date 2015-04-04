@@ -1,1 +1,1 @@
-from jacked.jacked import easy_client
+from .jacked import easy_client
