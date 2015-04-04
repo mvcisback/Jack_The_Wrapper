@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='JackTheWrapper',
-    version='0.1.0',
+    version='0.1.1',
     author='Marcell Vazquez-Chanlatte',
     packages=find_packages(),
     url='',
